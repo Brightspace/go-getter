@@ -10,7 +10,7 @@ references:
 
 environment: &ENVIRONMENT
   TEST_RESULTS: "/tmp/test-results"
-
+  
 jobs:
   linux-tests:
     executor:
@@ -52,16 +52,17 @@ jobs:
       go-version:
         type: string
     environment:
-      TEST_RESULTS: *TEST_RESULTS_PATH
       WIN_GOPATH: c:\gopath
+      TEST_RESULTS: *TEST_RESULTS_PATH
     steps: 
+      - run: git config --global core.autocrlf false
       - checkout
       - run: 
           name: Install dependencies
           shell: bash.exe
           command: |
             mkdir -p $TEST_RESULTS/go-getter
-            # Module requires golang v.1.13+, but the default on Windows is 1.12
+            # Module requires golang v.1.13+, but only 1.12 is pre-installed
             choco install golang --version << parameters.go-version >>
             curl -fOL https://github.com/gotestyourself/gotestsum/releases/download/v0.4.1/gotestsum_0.4.1_windows_amd64.tar.gz
             tar -xvzf gotestsum_0.4.1_windows_amd64.tar.gz
@@ -69,13 +70,12 @@ jobs:
           name: Run tests with gotestsum 
           shell: bash.exe
           command: |
-            git config --global core.autocrlf false
             PACKAGE_NAMES=$(go list ./...)
             ./gotestsum.exe --format=short-verbose --junitfile $TEST_RESULTS/go-getter/gotestsum-report.xml -- $PACKAGE_NAMES
       - store_test_results:
-          path: *TEST_RESULTS_PATH
+          path: c:\Users\circleci\AppData\Local\Temp\test-results
       - store_artifacts:
-          path: *TEST_RESULTS_PATH
+          path: c:\Users\circleci\AppData\Local\Temp\test-results
 
 workflows:
   go-getter:
@@ -84,13 +84,11 @@ workflows:
           context: go-getter
           matrix:
             parameters:
-              # Module requires golang v.1.13+ 
               go-version: ["1.14.1"]
           name: linux-test-go-<< matrix.go-version >>
       - windows-tests:
           context: go-getter
           matrix:
             parameters:
-              # Module requires golang v.1.13+ 
               go-version: ["1.14.1"]
           name: win-test-go-<< matrix.go-version >>
